@@ -61,11 +61,11 @@ $descriptor{depend} = { 'FFTW3.pm' => join(' ', qw(template_complex.c template_r
 
 # This Alien::FFTW3 requirement is actually optional. pkg-config is used if this
 # isn't available
-$descriptor{PREREQ_PM} = {'PDL'=>2.006,
-                          'Alien::FFTW3'=>0};
-$descriptor{BUILD_REQUIRES} = {'PDL::Core::Dev'=>0,
-                               'PDL::PP'=>0,
-                               'IPC::Run'=>0};
+$descriptor{PREREQ_PM} = {'PDL'=>2.006};
+$descriptor{CONFIGURE_REQUIRES} = {'PDL::Core::Dev' =>0,
+                                   'IPC::Run'       =>0,
+                                   'Alien::FFTW3'   =>0};
+$descriptor{BUILD_REQUIRES} = {'PDL::PP'=>0};
 $descriptor{NO_MYMETA} = 0;
 
 $descriptor{NAME}   = "PDL::FFTW3";
@@ -90,7 +90,12 @@ WriteMakefile( %descriptor );
 
 sub MY::postamble
 {
-  pdlpp_postamble(\@package);
+  return <<'FOO' . pdlpp_postamble(\@package);
+
+install ::
+	@echo "Updating PDL documentation database...";
+	@$(PERL) -e 'exit if $$ENV{DESTDIR}; use PDL::Doc; eval { PDL::Doc::add_module(q{PDL::FFTW3}); }; ';
+FOO
 }
 
 sub parseVersion

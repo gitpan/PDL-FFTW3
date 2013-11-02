@@ -1,20 +1,19 @@
 --- #YAML:1.0
 name:               PDL-FFTW3
-version:            0.02.1
+version:            0.02.2
 abstract:           PDL interface to the Fastest Fourier Transform in the West
 author:
     - Dima Kogan <dima@secretsauce.net>, Craig DeForest <deforest@boulder.swri.edu>
 license:            unknown
 distribution_type:  module
 configure_requires:
-    ExtUtils::MakeMaker:  0
-build_requires:
+    Alien::FFTW3:    0
     IPC::Run:        0
     PDL::Core::Dev:  0
-    PDL::PP:         0
+build_requires:
+    PDL::PP:  0
 requires:
-    Alien::FFTW3:  0
-    PDL:           2.006
+    PDL:  2.006
 resources:
     bugtracker:  http://github.com/dkogan/PDL-FFTW3/issues
     homepage:    http://github.com/dkogan/PDL-FFTW3
@@ -22,7 +21,7 @@ resources:
 provides:
     PDL::FFTW3:
         file:     FFTW3.pd
-        version:  0.02.1
+        version:  0.02.2
 no_index:
     directory:
         - t
