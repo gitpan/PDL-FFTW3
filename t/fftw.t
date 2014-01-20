@@ -18,12 +18,16 @@ use PDL::Types;
 set_autopthread_targ(2);
 set_autopthread_size(0);
 
+# With potentially-unaligned input I can no longer predict when a new plan will
+# be created, so I disable plan-creation checks. When PDL itself produces only
+# aligned data buffers this should be re-enabled.
+my $do_check_plan_creations = undef;
 
 use Test::More;
 
 BEGIN
 {
-  plan tests => 170;
+  plan tests => 176;
   use_ok( 'PDL::FFTW3' );
 }
 
@@ -50,6 +54,9 @@ my $Nplans = 0;
 
   ok_should_make_plan( all( approx( fft1($x), $Xref, approx_eps_double) ),
                       "Basic 1D complex FFT - double precision" );
+
+  ok_should_reuse_plan( all( approx( $x->fft1, $Xref, approx_eps_double) ),
+                        "Basic 1D complex FFT as a method - double precision" );
 
   ok_should_make_plan( all( approx( fft1(float $x), float($Xref), approx_eps_single) ),
                       "Basic 1D complex FFT - single precision" );
@@ -488,6 +495,29 @@ my $Nplans = 0;
   my $x7_back = irfft1($fx7_ref->slice(':,0:3'), zeros(7) );
   ok_should_make_plan( all( approx( $x7, $x7_back, approx_eps_double) ),
                        "rfft basic test - backward - 7long" );
+
+
+  # 2 1d threaded real ffts with odd size, single-precision. Each of the
+  # threaded data-sets can have different alignment, requiring the
+  # plan-generator to think of both data chunks
+  # octave code: conj(fft((0:4).**2)') and conj(fft((5+(0:4)).**2)')
+  my $x5 = sequence(10)**2;
+  $x5 = $x5->reshape(5,2)->float;
+
+  my $fx5_ref = pdl( [ [30.0000, + 0.0000],
+                       [-5.2639, +17.2048],
+                       [-9.7361, + 4.0615],
+                       [-9.7361, - 4.0615],
+                       [-5.2639, -17.2048] ],
+                     [ [255.000, + 0.000],
+                       [-30.264, +51.614],
+                       [-34.736, +12.184],
+                       [-34.736, -12.184],
+                       [-30.264, -51.614] ] );
+
+  my $fx5 = rfft1($x5);
+  ok_should_make_plan( all( approx( $fx5, $fx5_ref->slice(':,0:2'), approx_eps_single) ),
+                       "rfft threaded single precision, odd number. May need 2 plans" );
 }
 
 # real fft 2D checks
@@ -710,6 +740,8 @@ my $Nplans = 0;
     ok_should_make_plan( all( approx( $b, $btemplate, approx_eps_double ) ),
 			 "parameterized forward complex FFT works (1d on a 1+3d var)" );
 
+    ok_should_reuse_plan( all( approx( $a->fftn(1), $btemplate, approx_eps_double ) ),
+                          "parameterized forward complex FFT works (1d on a 1+3d var) - method" );
 
     $b = fftn($a,2);
     $btemplate .= 0;
@@ -746,6 +778,47 @@ my $Nplans = 0;
 
 }
 
+# Alignment checks. Here I try to fft purposely-unaligned piddles to make sure
+# that PDL::FFTW3 both makes a new plan and computes the data correctly. I only
+# create an input offset
+#
+# This test isn't written perfectly. It assumes that $x->copy is aligned at 16
+# bytes, which is true on my amd64 box, but is not true in general.
+# Additionally, FFTW crashes if alignment is particularly bad, so I disable
+# these tests.
+if(0)
+{
+  my $x = sequence(10)->cat(sequence(10)**2)->mv(-1,0);
+
+  # from octave: conj( fft( (0:9) + i* ((0:9).**2) )' )
+  my $Xref = pdl( [45.0000000000000,+285.0000000000000],
+                  [-158.8841768587627,+17.7490974608742],
+                  [-73.8190960235587,-28.6459544426446],
+                  [-41.3271264002680,-38.7279671349711],
+                  [-21.2459848116453,-42.8475374738350],
+                  [-5.0000000000000,-45.0000000000000],
+                  [11.2459848116453,-46.0967344361641],
+                  [31.3271264002680,-45.9933924150247],
+                  [63.8190960235587,-42.4097736473563],
+                  [148.8841768587627,-13.0277379108784] );
+
+  my $length = length ${$x->get_dataref};
+  for my $offset (4,8)
+  {
+    # this assumes a 16-aligned piddle is created. This is true on my amd64 box
+    my $x_offset = $x->copy;
+
+    # create an offset in the data inside the piddle
+    ${$x_offset->get_dataref} .= ' ' x $offset;
+    substr(${$x_offset->get_dataref}, 0, $offset) = "";
+    substr(${$x_offset->get_dataref}, 0) = ${$x->get_dataref};
+    $x_offset->upd_data();
+
+    ok_should_make_plan( all( approx( fft1($x_offset), $Xref, approx_eps_double) ),
+                         "Basic 1D complex FFT - unaligned $offset bytes" );
+  }
+}
+
 
 
 
@@ -766,15 +839,24 @@ sub ok_should_reuse_plan
 sub check_new_plan
 {
   my $planname = shift;
-  ok( $PDL::FFTW3::_Nplans == $Nplans+1,
-      "$planname: should make a new plan" );
+
+ SKIP: {
+    skip "Plan creation checks disabled because pdl memory may be unaligned", 1 unless $do_check_plan_creations;
+    ok( $PDL::FFTW3::_Nplans == $Nplans+1,
+        "$planname: should make a new plan" );
+  }
+
   $Nplans = $PDL::FFTW3::_Nplans;
 }
 
 sub check_reused_plan
 {
   my $planname = shift;
-  ok( $PDL::FFTW3::_Nplans == $Nplans,
-      "$planname: should reuse an existing plan" );
+
+ SKIP: {
+    skip "Plan creation checks disabled because pdl memory may be unaligned", 1 unless $do_check_plan_creations;
+    ok( $PDL::FFTW3::_Nplans == $Nplans,
+        "$planname: should reuse an existing plan" );
+  }
   $Nplans = $PDL::FFTW3::_Nplans;
 }

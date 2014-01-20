@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
+use Config;
 use PDL::Core::Dev;
 
 ##############################
@@ -46,8 +47,8 @@ my @package = qw(FFTW3.pd FFTW3 PDL::FFTW3);
 my %descriptor = pdlpp_stdargs(\@package);
 
 $descriptor{VERSION}   = parseVersion( 'FFTW3.pd');
-$descriptor{OPTIMIZE}  = '-O2';
-$descriptor{CCFLAGS} .= '--std=gnu99';
+$descriptor{OPTIMIZE}  = ($Config{ccname} eq 'gcc') ? '-O2' : $Config{optimize};
+$descriptor{CCFLAGS} .= ( ($Config{ccname} eq 'gcc') ? '--std=gnu99 ' : '' ) . $Config{ccflags};
 
 # I support single and double precision FFTW calls, so both fftw and fftw3f
 push @{$descriptor{LIBS}  },  $libs;
@@ -61,10 +62,11 @@ $descriptor{depend} = { 'FFTW3.pm' => join(' ', qw(template_complex.c template_r
 
 # This Alien::FFTW3 requirement is actually optional. pkg-config is used if this
 # isn't available
-$descriptor{PREREQ_PM} = {'PDL'=>2.006};
+$descriptor{PREREQ_PM} = {'PDL'=>2.001};
 $descriptor{CONFIGURE_REQUIRES} = {'PDL::Core::Dev' =>0,
                                    'IPC::Run'       =>0,
-                                   'Alien::FFTW3'   =>0};
+                                   #'Alien::FFTW3'   =>0,
+                                };
 $descriptor{BUILD_REQUIRES} = {'PDL::PP'=>0};
 $descriptor{NO_MYMETA} = 0;
 

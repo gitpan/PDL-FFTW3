@@ -1,32 +1,31 @@
---- #YAML:1.0
-name:               PDL-FFTW3
-version:            0.02.2
-abstract:           PDL interface to the Fastest Fourier Transform in the West
+---
+abstract: 'PDL interface to the Fastest Fourier Transform in the West'
 author:
-    - Dima Kogan <dima@secretsauce.net>, Craig DeForest <deforest@boulder.swri.edu>
-license:            unknown
-distribution_type:  module
-configure_requires:
-    Alien::FFTW3:    0
-    IPC::Run:        0
-    PDL::Core::Dev:  0
+  - 'Dima Kogan <dima@secretsauce.net>, Craig DeForest <deforest@boulder.swri.edu>'
 build_requires:
-    PDL::PP:  0
-requires:
-    PDL:  2.006
-resources:
-    bugtracker:  http://github.com/dkogan/PDL-FFTW3/issues
-    homepage:    http://github.com/dkogan/PDL-FFTW3
-    repository:  git://github.com/dkogan/PDL-FFTW3.git
-provides:
-    PDL::FFTW3:
-        file:     FFTW3.pd
-        version:  0.02.2
-no_index:
-    directory:
-        - t
-        - inc
-generated_by:       ExtUtils::MakeMaker version 6.57_05
+  PDL::PP: 0
+configure_requires:
+  IPC::Run: 0
+  PDL::Core::Dev: 0
+dynamic_config: 1
+generated_by: 'ExtUtils::MakeMaker version 6.66, CPAN::Meta::Converter version 2.120921'
+license: unknown
 meta-spec:
-    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
-    version:  1.4
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: PDL-FFTW3
+no_index:
+  directory:
+    - t
+    - inc
+provides:
+  PDL::FFTW3:
+    file: FFTW3.pd
+    version: v0.2.2_1
+requires:
+  PDL: 2.001
+resources:
+  bugtracker: http://github.com/dkogan/PDL-FFTW3/issues
+  homepage: http://github.com/dkogan/PDL-FFTW3
+  repository: git://github.com/dkogan/PDL-FFTW3.git
+version: v0.02.2_01
