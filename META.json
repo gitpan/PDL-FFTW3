@@ -27,6 +27,7 @@
       },
       "configure" : {
          "requires" : {
+            "Alien::FFTW3" : "0",
             "IPC::Run" : "0",
             "PDL::Core::Dev" : "0"
          }
@@ -40,7 +41,7 @@
    "provides" : {
       "PDL::FFTW3" : {
          "file" : "FFTW3.pd",
-         "version" : "v0.2.2_1"
+         "version" : "v0.2.2_2"
       }
    },
    "release_status" : "testing",
@@ -53,5 +54,5 @@
          "url" : "git://github.com/dkogan/PDL-FFTW3.git"
       }
    },
-   "version" : "v0.02.2_01"
+   "version" : "v0.02.2_02"
 }

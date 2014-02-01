@@ -10,6 +10,8 @@ use PDL::Core::Dev;
 # a Debian package won't have to include Alien::FFTW3.
 my $cflags;
 my $libs;
+my $version = parseVersion( 'FFTW3.pd');
+
 if( eval "require Alien::FFTW3" ) {
 
     ## Ensure at least version 3.3; die if we can't get it.
@@ -23,6 +25,14 @@ if( eval "require Alien::FFTW3" ) {
     $cflags = Alien::FFTW3->cflags;
     $libs   = Alien::FFTW3->libs;
 } else {
+    if( $version =~ /_/ )
+    {
+      die
+        "Alien::FFTW3 not found, but it is required for dev snapshots, such as this.\n" .
+        "Please use Alien::FFTW3 or use a release of this module.\n" .
+        "Or remove this check from the source.";
+    }
+
     printf "Alien::FFTW3 not found.  Using pkg-config instead...\n";
 
     require IPC::Run;
@@ -46,9 +56,9 @@ if( eval "require Alien::FFTW3" ) {
 my @package = qw(FFTW3.pd FFTW3 PDL::FFTW3);
 my %descriptor = pdlpp_stdargs(\@package);
 
-$descriptor{VERSION}   = parseVersion( 'FFTW3.pd');
-$descriptor{OPTIMIZE}  = ($Config{ccname} eq 'gcc') ? '-O2' : $Config{optimize};
-$descriptor{CCFLAGS} .= ( ($Config{ccname} eq 'gcc') ? '--std=gnu99 ' : '' ) . $Config{ccflags};
+$descriptor{VERSION}   = $version;
+$descriptor{OPTIMIZE}  = ($Config{ccname} =~ m/gcc/) ? '-O2' : $Config{optimize};
+$descriptor{CCFLAGS} .= ( ($Config{ccname} =~ m/gcc/) ? '--std=gnu99 ' : '' ) . $Config{ccflags};
 
 # I support single and double precision FFTW calls, so both fftw and fftw3f
 push @{$descriptor{LIBS}  },  $libs;
@@ -65,7 +75,7 @@ $descriptor{depend} = { 'FFTW3.pm' => join(' ', qw(template_complex.c template_r
 $descriptor{PREREQ_PM} = {'PDL'=>2.001};
 $descriptor{CONFIGURE_REQUIRES} = {'PDL::Core::Dev' =>0,
                                    'IPC::Run'       =>0,
-                                   #'Alien::FFTW3'   =>0,
+                                   'Alien::FFTW3'   =>0,
                                 };
 $descriptor{BUILD_REQUIRES} = {'PDL::PP'=>0};
 $descriptor{NO_MYMETA} = 0;
@@ -96,7 +106,7 @@ sub MY::postamble
 
 install ::
 	@echo "Updating PDL documentation database...";
-	@$(PERL) -e 'exit if $$ENV{DESTDIR}; use PDL::Doc; eval { PDL::Doc::add_module(q{PDL::FFTW3}); }; ';
+	@$(PERL) -e "exit if $$ENV{DESTDIR}; use PDL::Doc; eval { PDL::Doc::add_module(q{PDL::FFTW3}); }; ";
 FOO
 }
 
